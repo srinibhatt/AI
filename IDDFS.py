@@ -40,7 +40,7 @@ def generate_random_start_state(template, n):
 
 
 def solve_puzzle(start_state, goal_state):
-    max_depth = 15
+    max_depth = 30
 
     def dfs(node, depth, nodes_opened):
         if depth == 0:
