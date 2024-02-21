@@ -1,86 +1,105 @@
-import copy
-import itertools
 import random
-import csv
 import time
+import csv
 
-# Set the random seed for reproducibility
-random.seed(123)  # Adjust the seed as needed
+# Define Student Registration number 100443924. So, last 3 digits for Seed set is 924
+random.seed(111)
 
+class Node:
+    def __init__(self, state, parent=None, action=None, depth=0):
+        self.state = state  # State is a tuple (x, y, matrix)
+        self.parent = parent
+        self.action = action
+        self.depth = depth
 
-def move(state):
-    [i, j, grid] = state
-    n = len(grid)
-    for pos in move_blank(i, j, n):
-        i1, j1 = pos
-        new_grid = copy.deepcopy(grid)
-        new_grid[i][j], new_grid[i1][j1] = new_grid[i1][j1], new_grid[i][j]
-        yield [i1, j1, new_grid]
+    def __eq__(self, other):
+        return self.state == other.state
 
+    def __hash__(self):
+        return hash(self.state)
 
-def move_blank(i, j, n):
-    if i + 1 < n:
-        yield (i + 1, j)
-    if i - 1 >= 0:
-        yield (i - 1, j)
-    if j + 1 < n:
-        yield (i, j + 1)
-    if j - 1 >= 0:
-        yield (i, j - 1)
+def template_state_generator():
+    while True:
+        state = tuple(random.sample(range(9), 9))
+        if is_solvable(state):
+            matrix = tuple(state[i:i+3] for i in range(0, 9, 3))
+            zero_position = next((i, row.index(0)) for i, row in enumerate(matrix) if 0 in row)
+            return zero_position + (matrix,)
 
+def is_solvable(state):
+    inversions = sum(1 for i in range(len(state)) for j in range(i+1, len(state)) if state[j] and state[i] and state[i] > state[j])
+    return inversions % 2 == 0
 
-def generate_random_start_state(template, n):
+def generate_start_states(template_state, n=10):
     start_states = []
     for _ in range(n):
-        shuffled = template[:]
-        random.shuffle(shuffled)
-        state = [shuffled.index(0) // 3, shuffled.index(0) % 3, [shuffled[i:i + 3] for i in range(0, 9, 3)]]
-        start_states.append(state)
+        shuffled_list = random.sample([item for sublist in template_state[2] for item in sublist], 9)
+        shuffled_matrix = tuple(tuple(shuffled_list[i:i + 3]) for i in range(0, 9, 3))
+        blank_position = shuffled_list.index(0)
+        blank_x, blank_y = divmod(blank_position, 3)
+        start_states.append((blank_x, blank_y, shuffled_matrix))
     return start_states
 
+def get_children(node):
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Up, Down, Left, Right
+    children = []
+    x, y, matrix = node.state
+    for dx, dy in directions:
+        nx, ny = x + dx, y + dy
+        if 0 <= nx < 3 and 0 <= ny < 3:
+            swapped_matrix = list(map(list, matrix))
+            swapped_matrix[x][y], swapped_matrix[nx][ny] = swapped_matrix[nx][ny], swapped_matrix[x][y]
+            children.append(Node((nx, ny, tuple(map(tuple, swapped_matrix))), node, (dx, dy), node.depth + 1))
+    return children
+
+def iddfs(root, goal, max_depth):
+    for depth in range(max_depth + 1):
+        visited = set()
+        result, nodes_opened = dls(root, goal, depth, visited, 0)
+        if result is not None:
+            return result, nodes_opened
+    return None, nodes_opened
+
+def dls(node, goal, depth, visited, nodes_opened):
+    if node.depth > depth:
+        return None, nodes_opened
+    nodes_opened += 1
+    visited.add(node.state)
+    if node.state == goal:
+        return node, nodes_opened
+    for child in get_children(node):
+        if child.state not in visited:
+            result, nodes_opened = dls(child, goal, depth, visited, nodes_opened)
+            if result is not None:
+                return result, nodes_opened
+    return None, nodes_opened
 
 def solve_puzzle(start_state, goal_state):
+    root = Node(start_state)
     max_depth = 30
+    start_time = time.time()
+    solution, nodes_opened = iddfs(root, goal_state, max_depth)
+    end_time = time.time()
 
-    def dfs(node, depth, nodes_opened):
-        if depth == 0:
-            return None, nodes_opened
-        if node[2] == goal_state[2]:
-            return [node], nodes_opened
-        for next_state in move(node):
-            nodes_opened += 1
-            result, nodes_opened = dfs(next_state, depth - 1, nodes_opened)
-            if result is not None:
-                return [node] + result, nodes_opened
-        return None, nodes_opened
+    if solution:
+        moves = solution.depth
+        found_solution = True
+    else:
+        moves = 0
+        found_solution = False
 
-    for depth in itertools.count(start=1):
-        nodes_opened = 0
-        start_time = time.time()
-        result, nodes_opened = dfs(start_state, depth, nodes_opened)
-        end_time = time.time()
-        if result or depth == max_depth:
-            solution_found = 1 if result else 0
-            number_of_moves = len(result) - 1 if result else 0
-            computing_time = end_time - start_time
-            return start_state, solution_found, number_of_moves, nodes_opened, computing_time
+    computing_time = end_time - start_time
+    return (start_state, found_solution, moves, nodes_opened, computing_time)
 
-
-def main():
-    template = [8, 7, 6, 5, 4, 3, 2, 1, 0]
-    goal_state = [1, 1, [[1, 2, 3], [8, 0, 4], [7, 6, 5]]]
-    start_states = generate_random_start_state(template, 10)
-
-    with open('IDDFS_output.csv', 'w', newline='') as file:
+def save_results_to_csv(results, filename="IDDFS_output_refactored.csv"):
+    with open(filename, mode="w", newline="") as file:
         writer = csv.writer(file)
-        writer.writerow(
-            ['Case number', 'Case start state', 'Solution found', 'Number of moves', 'Number of nodes opened',
-             'Computing time'])
+        writer.writerow(["Case_Id", "Start_State", "Solution_Found", "Num_Moves", "Num_Nodes_Opened", "Computing_Time"])
+        for case_num, (start_state, solution_found, num_moves, num_nodes_opened, computing_time) in enumerate(results, 1):
+            writer.writerow([case_num, str(start_state), int(solution_found), num_moves, num_nodes_opened, computing_time])
 
-        for i, start_state in enumerate(start_states, start=1):
-            _, solution_found, number_of_moves, nodes_opened, computing_time = solve_puzzle(start_state, goal_state)
-            writer.writerow([i, str(start_state[2]), solution_found, number_of_moves, nodes_opened, computing_time])
-
-
-if __name__ == "__main__":
-    main()
+goal_state = (1, 1, ((1, 2, 3), (8, 0, 4), (7, 6, 5)))
+template_state = template_state_generator()
+start_states = generate_start_states(template_state, n=10)
+results = [solve_puzzle(start_state, goal_state) for start_state in start_states]
+save_results_to_csv(results)

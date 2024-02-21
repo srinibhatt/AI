@@ -83,7 +83,7 @@ def generate_start_states(seed, num_states=10):
     return start_states
 
 def main():
-    seed = 123  # Replace with the last three digits of your student registration number
+    seed = 111  # Replace with the last three digits of your student registration number
     goal_state = [1, 1, [[1, 2, 3], [8, 0, 4], [7, 6, 5]]]
     start_states = generate_start_states(seed)
 
