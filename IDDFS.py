@@ -8,17 +8,20 @@ class PuzzleSolver:
         self.n = n  # Puzzle dimension
         random.seed(seed)
 
-    @staticmethod
-    def is_solvable(state):
-        inversions = sum(1 for i in range(len(state)) for j in range(i + 1, len(state)) if
-                         state[j] and state[i] and state[i] > state[j])
-        return inversions % 2 == 0
+    def generate_random_states(self, num_states=10):
+        template_state = list(range(8, -1, -1))
+        random.seed(111)
+        start_states = []
+        for i in range(num_states):
+            shuffled_state = template_state[:]
+            random.shuffle(shuffled_state)
+            grid = [shuffled_state[i:i + 3] for i in range(0, 9, 3)]
+            blank_pos = next((r, c) for r, row in enumerate(grid) for c, val in enumerate(row) if val == 0)
+            start_states.append([*blank_pos, grid])
+        return start_states
 
-    def generate_solvable_state(self):
-        while True:
-            state = tuple(random.sample(range(self.n ** 2), self.n ** 2))
-            if self.is_solvable(state):
-                return self.state_to_matrix(state)
+
+
 
     def state_to_matrix(self, state):
         matrix = tuple(state[i:i + self.n] for i in range(0, self.n ** 2, self.n))
@@ -61,7 +64,8 @@ class PuzzleSolver:
         if node.depth > depth:
             return None, nodes_opened
         nodes_opened += 1
-        visited.add(node.state)
+        visited.add((node.state[0], node.state[1], tuple(map(tuple, node.state[2]))))
+
         if node.state == goal:
             return node, nodes_opened
         for child in self.get_children(node):
@@ -108,7 +112,7 @@ class Node:
 # Usage example
 solver = PuzzleSolver()
 goal_state = (1, 1, ((1, 2, 3), (8, 0, 4), (7, 6, 5)))
-template_state = solver.generate_solvable_state()
-start_states = solver.generate_start_states(template_state)
+#template_state = solver.generate_solvable_state()
+start_states = solver.generate_random_states()
 results = [solver.solve_puzzle(start_state, goal_state) for start_state in start_states]
 solver.save_results_to_csv(results)
