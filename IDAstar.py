@@ -25,8 +25,8 @@ class Puzzle:
         Initialize the Puzzle with initial and goal states.
 
         Args:
-            initial (list of list): Initial state of the puzzle.
-            goal (list of list): Goal state of the puzzle.
+            :param initial (list of list): Initial state of the puzzle.
+            :param goal (list of list): Goal state of the puzzle.
         """
         # Convert lists to tuples for immutability and efficiency
         self.initial = tuple(tuple(row) for row in initial[2])
@@ -40,10 +40,10 @@ class Puzzle:
         Calculate the Manhattan distance heuristic from the current state to the goal state.
 
         Args:
-            state (tuple of tuple): Current state of the puzzle.
+            :param state (tuple of tuple): Current state of the puzzle.
 
         Returns:
-            int: The total Manhattan distance of all tiles from their goal positions.
+            :return int: The total Manhattan distance of all tiles from their goal positions.
         """
         distance = 0
         for r, row in enumerate(state):
@@ -58,10 +58,10 @@ class Puzzle:
         Generate all possible successor states from the current state by moving the blank tile.
 
         Args:
-            state (tuple of tuple): Current state of the puzzle.
+            :param state (tuple of tuple): Current state of the puzzle.
 
         Returns:
-            list of tuple of tuple: A list of all possible successor states.
+            :return list of tuple of tuple: A list of all possible successor states.
         """
         zero_row, zero_col = next((r, c) for r, row in enumerate(state) for c, val in enumerate(row) if not val)
         successors = []
@@ -82,10 +82,10 @@ class Puzzle:
         Solve the puzzle using the IDA* algorithm with a specified timeout.
 
         Args:
-            timeout_seconds (int): The maximum allowed time in seconds to solve the puzzle.
+            :param timeout_seconds (int): The maximum allowed time in seconds to solve the puzzle.
 
         Returns:
-            tuple: A tuple containing the solution path (if found), the number of nodes opened, and whether a solution was found.
+            :return tuple: A tuple containing the solution path (if found), the number of nodes opened, and whether a solution was found.
         """
         nodes_opened = [0]  # Track the number of nodes opened during the search
 
@@ -94,14 +94,14 @@ class Puzzle:
             Recursive search function to explore the state space within the cost bound.
 
             Args:
-                path (list): The current path taken to reach the state.
-                g (int): The cost to reach the current state from the initial state.
-                bound (int): The current cost bound for the search.
-                start_time (datetime): The start time of the search to track elapsed time.
-                nodes_opened (list of int): A single-element list tracking the number of nodes opened.
+                :param path (list): The current path taken to reach the state.
+                :param g (int): The cost to reach the current state from the initial state.
+                :param bound (int): The current cost bound for the search.
+                :param start_time (datetime): The start time of the search to track elapsed time.
+                :param nodes_opened (list of int): A single-element list tracking the number of nodes opened.
 
             Returns:
-                tuple: A tuple containing the minimum cost exceeding the bound if not found, whether a solution was found, and the number of nodes opened.
+                :return tuple: A tuple containing the minimum cost exceeding the bound if not found, whether a solution was found, and the number of nodes opened.
             """
             nodes_opened[0] += 1
             current = path[-1]
@@ -138,11 +138,11 @@ def solve_puzzle(start_state, goal_state):
     Solve a single instance of the puzzle and return the solution metrics.
 
     Args:
-        start_state (list): The initial state of the puzzle.
-        goal_state (list): The goal state of the puzzle.
+        :param start_state (list): The initial state of the puzzle.
+        :param goal_state (list): The goal state of the puzzle.
 
     Returns:
-        tuple: A tuple containing the initial state, whether a solution was found, the number of moves, nodes opened, and computing time.
+        :return tuple: A tuple containing the initial state, whether a solution was found, the number of moves, nodes opened, and computing time.
     """
     start_time = time.time()
     puzzle = Puzzle(start_state, goal_state)
@@ -161,11 +161,11 @@ def generate_start_states(seed, num_states=10):
     Generate a list of random start states for the puzzle based on the given seed.
 
     Args:
-        seed (int): Seed value for random number generator.
-        num_states (int): Number of start states to generate.
+        :param seed (int): Seed value for random number generator.
+        :param num_states (int): Number of start states to generate.
 
     Returns:
-        list: A list of start states for the puzzle.
+        :return list: A list of start states for the puzzle.
     """
     template_state = list(range(8, -1, -1))
     random.seed(seed)
