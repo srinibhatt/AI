@@ -2,7 +2,7 @@ import random
 import time
 import csv
 
-# Set a fixed seed for reproducibility of random operations.
+# Set a fixed seed defaulted with last 3 digits for registration number.
 seed = 111
 # Define the maximum depth for the IDDFS algorithm.
 max_depth = 30
