@@ -65,24 +65,28 @@ class Puzzle:
         """
         zero_row, zero_col = next((r, c) for r, row in enumerate(state) for c, val in enumerate(row) if not val)
         successors = []
-        # Possible moves for the blank tile
+        zero_row, zero_col = self.find_zero_position(state)  # Adjusted to use the helper function
+
         for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             new_r, new_c = zero_row + dr, zero_col + dc
             if 0 <= new_r < self.size and 0 <= new_c < self.size:
-                new_state = [list(row) for row in state]  # Convert to list to modify
-                # Swap the blank tile with an adjacent tile
+                # Create a new state with the swapped positions
+                new_state = list(map(list, state))  # Convert tuple of tuples to list of lists
                 new_state[zero_row][zero_col], new_state[new_r][new_c] = new_state[new_r][new_c], new_state[zero_row][
                     zero_col]
-                # Convert back to tuple for immutability
-                successors.append(tuple(tuple(row) for row in new_state))
+                successors.append(tuple(map(tuple, new_state)))  # Convert back to tuple of tuples
         return successors
 
-    def ida_star(self, timeout_seconds=1):
+    def find_zero_position(self, state):
+        for row_index, row in enumerate(state):
+            if 0 in row:
+                return (row_index, row.index(0))
+        return None  # This line should never be reached if the puzzle state is valid
+
+    def ida_star(self):
         """
         Solve the puzzle using the IDA* algorithm with a specified timeout.
 
-        Args:
-            :param timeout_seconds (int): The maximum allowed time in seconds to solve the puzzle.
 
         Returns:
             :return tuple: A tuple containing the solution path (if found), the number of nodes opened, and whether a solution was found.
@@ -103,14 +107,16 @@ class Puzzle:
             Returns:
                 :return tuple: A tuple containing the minimum cost exceeding the bound if not found, whether a solution was found, and the number of nodes opened.
             """
-            nodes_opened[0] += 1
+
             current = path[-1]
             f = g + self.h_manhattan(current)
-            # Terminate search based on bound, max depth, or timeout
-            if f > bound or g > max_depth or datetime.now() - start_time > timedelta(seconds=timeout_seconds):
+            # Terminate search based on bound, max depth,
+            if f > bound or g > max_depth :
                 return f, False, nodes_opened[0]
             if current == self.goal:
                 return g, True, nodes_opened[0]
+
+
             min_bound = float('inf')
             for s in self.generate_successors(current):
                 if s not in path:  # Avoid cycles
@@ -121,15 +127,19 @@ class Puzzle:
                     if t < min_bound:
                         min_bound = t
                     path.pop()
+                    nodes_opened[0] += 1
             return min_bound, False, nodes_opened[0]
 
         start_time = datetime.now()
         bound = self.h_manhattan(self.initial)
         path = [self.initial]
         while True:
-            t, found, nodes_opened_count = search(path, 0, bound, start_time, nodes_opened)
-            if found or datetime.now() - start_time > timedelta(seconds=timeout_seconds):
+            t,  found, nodes_opened_count = search(path, 0, bound, start_time, nodes_opened)
+            if found :
                 return path if found else None, nodes_opened_count
+            elif(t == bound):
+                print("Solution path not found ",nodes_opened_count)
+                return None, nodes_opened_count
             bound = t
 
 
