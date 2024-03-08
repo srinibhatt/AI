@@ -3,7 +3,7 @@ import time
 import csv
 from datetime import datetime, timedelta
 
-# Seed for generating random start states. defaulted with last 3 digits for registration number.
+# Seed for generating random start states, based on the last 3 digits of a registration number.
 seed = 111
 # Maximum depth to limit the search. Adjust as needed.
 max_depth = 30
@@ -31,8 +31,8 @@ class Puzzle:
         # Convert lists to tuples for immutability and efficiency
         self.initial = tuple(tuple(row) for row in initial[2])
         self.goal = tuple(tuple(row) for row in goal[2])
-        self.size = len(self.initial)
-        # Precompute goal positions for all values for efficient lookup
+        self.size = len(self.initial)  # Size of the puzzle.
+        # Precompute goal positions for efficient lookup during heuristic calculation.
         self.goal_positions = {val: (r, c) for r, row in enumerate(self.goal) for c, val in enumerate(row)}
 
     def h_manhattan(self, state):
@@ -48,7 +48,7 @@ class Puzzle:
         distance = 0
         for r, row in enumerate(state):
             for c, val in enumerate(row):
-                if val:
+                if val:  # Skip the blank tile.
                     goal_r, goal_c = self.goal_positions[val]
                     distance += abs(r - goal_r) + abs(c - goal_c)
         return distance
@@ -65,23 +65,24 @@ class Puzzle:
         """
         zero_row, zero_col = next((r, c) for r, row in enumerate(state) for c, val in enumerate(row) if not val)
         successors = []
-        zero_row, zero_col = self.find_zero_position(state)  # Adjusted to use the helper function
+        zero_row, zero_col = self.find_zero_position(state)  # Find the blank tile position.
 
+        # Potential moves: up, down, left, right.
         for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             new_r, new_c = zero_row + dr, zero_col + dc
             if 0 <= new_r < self.size and 0 <= new_c < self.size:
-                # Create a new state with the swapped positions
-                new_state = list(map(list, state))  # Convert tuple of tuples to list of lists
+                new_state = list(map(list, state))  # Make a copy and swap tiles.
                 new_state[zero_row][zero_col], new_state[new_r][new_c] = new_state[new_r][new_c], new_state[zero_row][
                     zero_col]
-                successors.append(tuple(map(tuple, new_state)))  # Convert back to tuple of tuples
+                successors.append(tuple(map(tuple, new_state)))  # Convert back to tuple of tuples.
         return successors
 
     def find_zero_position(self, state):
+        """Find the position of the blank tile (zero) in the state."""
         for row_index, row in enumerate(state):
             if 0 in row:
                 return (row_index, row.index(0))
-        return None  # This line should never be reached if the puzzle state is valid
+        return None
 
     def ida_star(self):
         """
@@ -110,37 +111,42 @@ class Puzzle:
 
             current = path[-1]
             f = g + self.h_manhattan(current)
-            # Terminate search based on bound, max depth,
-            if f > bound or g > max_depth :
+            if f > bound or g > max_depth:
                 return f, False, nodes_opened[0]
             if current == self.goal:
-                return g, True, nodes_opened[0]
-
+                return g, True, nodes_opened[0]  # Goal state reached.
 
             min_bound = float('inf')
             for s in self.generate_successors(current):
-                if s not in path:  # Avoid cycles
+                if s not in path:  # Avoid cycles.
                     path.append(s)
                     t, found, nodes_opened_count = search(path, g + 1, bound, start_time, nodes_opened)
                     if found:
-                        return t, True, nodes_opened_count
+                        return t, True, nodes_opened_count  # Solution found.
                     if t < min_bound:
                         min_bound = t
-                    path.pop()
+                    path.pop()  # Backtrack.
                     nodes_opened[0] += 1
             return min_bound, False, nodes_opened[0]
 
         start_time = datetime.now()
-        bound = self.h_manhattan(self.initial)
+        bound = self.h_manhattan(self.initial)  # Initial bound based on heuristic.
+        print(f"Initial bound: {bound}")
         path = [self.initial]
         while True:
-            t,  found, nodes_opened_count = search(path, 0, bound, start_time, nodes_opened)
-            if found :
+            t, found, nodes_opened_count = search(path, 0, bound, start_time, nodes_opened)
+            if found:
+                # Print when a solution is found.
+                print(f"Solution found with path length {len(path)}. Nodes Opened: {nodes_opened_count}")
                 return path if found else None, nodes_opened_count
-            elif(t == bound):
-                print("Solution path not found ",nodes_opened_count)
+            elif t == bound:
+                # If no progress, terminate search.
+                print(f"Solution path not found within bound {bound}. Nodes Opened: {nodes_opened_count}")
                 return None, nodes_opened_count
-            bound = t
+            else:
+                # Increase bound and continue search.
+                print(f"No solution found within bound {bound}. Increasing bound to {t}")
+                bound = t
 
 
 def solve_puzzle(start_state, goal_state):
@@ -162,6 +168,13 @@ def solve_puzzle(start_state, goal_state):
     solution = solution_path is not None
     moves = len(solution_path) - 1 if solution else max_depth
     time_taken = end_time - start_time
+
+    # Print the outcome after solving each puzzle.
+    if solution:
+        print(f"Solved successfully. Moves: {moves}, Nodes Opened: {nodes_opened}, Time: {time_taken:.4f} seconds")
+    else:
+        print(
+            f"Could not be solved within the depth limit. Nodes Opened: {nodes_opened}, Time: {time_taken:.4f} seconds")
 
     return (start_state, solution, moves, nodes_opened, time_taken)
 
@@ -190,9 +203,8 @@ def generate_start_states(seed, num_states=10):
 
 
 def main():
-    """
-    Main function to solve multiple puzzles and write the results to a CSV file.
-    """
+    """Main function to solve multiple puzzles and write the results to a CSV file."""
+    print("Starting to solve multiple 8-puzzle instances using IDA* algorithm...")
     goal_state = [1, 1, [[1, 2, 3], [8, 0, 4], [7, 6, 5]]]
     start_states = generate_start_states(seed)
 
@@ -203,7 +215,9 @@ def main():
         writer.writeheader()
 
         for i, start_state in enumerate(start_states, 1):
+            print(f"\nStarting to solve puzzle {i} with initial state: {start_state[2]}")
             result = solve_puzzle(start_state, goal_state)
+
             writer.writerow({
                 'Seed': seed,
                 'Case Number': i,
@@ -213,6 +227,8 @@ def main():
                 'Nodes Opened': result[3],
                 'Computing Time': result[4]
             })
+
+    print("\nAll puzzles have been attempted. Results are saved in IDAstar_output.csv")
 
 
 if __name__ == "__main__":
